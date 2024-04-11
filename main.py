@@ -9,7 +9,7 @@ client = discord.Client(intents=intents)
 tree = app_commands.CommandTree(client)
 
 @tree.command(
-    name="FiRsT",
+    name="first",
     description="My first application Command"
 )
 async def first_command(interaction):
