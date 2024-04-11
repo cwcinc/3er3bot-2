@@ -10,7 +10,7 @@ tree = app_commands.CommandTree(client)
 
 @tree.command(
     name="first",
-    description="My first application Command"
+    description="My first application Command",
     guild=discord.Object(id=12417128931)
 )
 async def first(interaction):
