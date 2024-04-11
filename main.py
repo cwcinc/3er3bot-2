@@ -11,7 +11,7 @@ tree = app_commands.CommandTree(client)
 @tree.command(
     name="first",
     description="My first application Command",
-    guild=discord.Object(id=12417128931)
+    guild=discord.Object(id=856733214659051520)
 )
 async def first(interaction):
     await interaction.response.send_message("Hello yayyy!")
@@ -19,6 +19,7 @@ async def first(interaction):
 @client.event
 async def on_ready():
     await tree.sync(guild=discord.Object(id=856733214659051520))
+    print("Enabled!!!")
     print(f'We have logged in as {client.user}')
 
 """
