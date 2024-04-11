@@ -8,6 +8,7 @@ client = discord.Client(intents=intents)
 
 tree = app_commands.CommandTree(client)
 
+
 class Menu(discord.ui.View):
     def __init__(self):
         super.__init__()
@@ -16,6 +17,7 @@ class Menu(discord.ui.View):
     @discord.ui.button(label="Test", style=discord.ButtonStyle.grey)
     async def menu1(self, button: discord.ui.Button, interaction: discord.Interaction):
         await interaction.response.send_message("YAy you clicked test!")
+
 
 @tree.command(
     name="first",
@@ -26,6 +28,7 @@ async def first(ctx, title: str, description: str):
     embed=discord.Embed(title=title, description=description, color=discord.Color.blue())
     embed.set_thumbnail(url="https://upload.wikimedia.org/wikipedia/commons/thumb/5/5b/Latin_letter_small_capital_ezh.svg/1200px-Latin_letter_small_capital_ezh.svg.png")
     await ctx.response.send_message(embed=embed, ephemeral=True)
+
 
 async def second(ctx):
     view = Menu()
