@@ -13,8 +13,10 @@ tree = app_commands.CommandTree(client)
     description="My first application Command",
     guild=discord.Object(id=856733214659051520)
 )
-async def first(interaction):
-    await interaction.response.send_message("Hello yayyy!")
+async def first(ctx, title: str, description: str):
+    embed=discord.Embed(title=title, description=description, color=discord.Color.blue())
+    embed.set_thumbnail(url="https://upload.wikimedia.org/wikipedia/commons/thumb/5/5b/Latin_letter_small_capital_ezh.svg/1200px-Latin_letter_small_capital_ezh.svg.png")
+    await ctx.response.send_message(embed=embed, ephemeral=True)
 
 @client.event
 async def on_ready():
