@@ -12,7 +12,7 @@ tree = app_commands.CommandTree(client)
     name="first",
     description="My first application Command"
 )
-async def first_command(interaction):
+async def first(interaction):
     await interaction.response.send_message("Hello yayyy!")
 
 @client.event
