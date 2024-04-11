@@ -8,7 +8,7 @@ client = discord.Client(intents=intents)
 
 tree = app_commands.CommandTree(client)
 
-class Menu(discord.ui.view):
+class Menu(discord.ui.View):
     def __init__(self):
         super.__init__()
         self.value = None
