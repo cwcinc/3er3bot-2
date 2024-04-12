@@ -24,8 +24,9 @@ def splice_audio_files(source_audio_path, splice_audio_path, splice_position_ms)
     new_audio = source_audio[:splice_position_ms] + splice_audio + source_audio_after_splice
 
     # Export the new audio
-    output_path = "output_audio.mp3"  # Change this to your desired output path
-    new_audio.export(output_path, format="mp3")
+    output_path = "miningChallenge.mp3"  # Change this to your desired output path
+    print("exporting...")
+    new_audio.export(output_path, format="mp3", bitrate="16k")
 
     print("Audio splicing completed successfully!")
 
@@ -34,4 +35,5 @@ def generate_final_audio(code):
     code = " ".join(str(code))
     create_tts_code(code)
     splice_time = random.randint(1*60*1000, 40*60*1000)
-    splice_audio_files("Bushmeat.mp3", "tts_output.mp3", splice_time)
+    print("TTS created. Splicing audio...")
+    splice_audio_files("testaudio.mp3", "tts_output.mp3", splice_time)
