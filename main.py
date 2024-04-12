@@ -1,6 +1,7 @@
 import discord, os, udata
 from discord.ui import View, Button
 
+import mining, taxes, random
 
 intents = discord.Intents.default()
 intents.message_content = True  # Needed for slash commands
@@ -62,6 +63,29 @@ async def set_bal(interaction: discord.Interaction, target: discord.Member, valu
     udata.setbal(target.id, value)
 
     await interaction.response.send_message(f"Set {target.mention}'s 3er3coin balance to {value}!")
+
+
+class FinishMine(View):
+    @discord.ui.button(label="Click Me!", style=discord.ButtonStyle.red)
+    async def button_callback(self, interaction: discord.Interaction, button: discord.ui.Button):
+        # Update button text or perform actions on click
+
+        userid = interaction.user.id
+
+        button.label = "Armed."
+        await interaction.response.edit_message(view=self)
+        await interaction.followup.send(f"Added 10 to your balance. Your new balance is {udata.getbal(userid)}!", ephemeral=True)
+
+
+@tree.command(name="mine", description="Mine for 3er3!", guild=discord.Object(id=guildID))
+async def set_bal(interaction: discord.Interaction):
+    code = random.randint(1000, 9999)
+    print("Generating coded audio...")
+    await interaction.response.send_message("Generating coded audio...")
+    mining.generate_final_audio(code)
+    print("Coded audio completed. Sending...")
+
+    await interaction.followup.send(file=discord.File("output_audio.mp3"))
 
 
 @bot.event

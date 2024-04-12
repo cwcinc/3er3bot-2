@@ -1,41 +1,37 @@
+from pydub import AudioSegment
 from gtts import gTTS
-import pydub
+import random
 
 
-def generate_audio_code():
-    # Text for TTS generation
-    text = "This is the text to be inserted."
+def create_tts_code(code):
+    text = code
 
-    # Generate TTS audio using gTTS
     speech = gTTS(text=text, lang='en')
     speech.save("tts_output.mp3")
 
-    # Existing audio file path
-    existing_audio = "testaudio.mp3"
 
-    # Desired insertion point (in seconds) in the existing audio
-    insertion_point = 10  # Adjust this value as needed
+def splice_audio_files(source_audio_path, splice_audio_path, splice_position_ms):
+    # Load the source audio file
+    source_audio = AudioSegment.from_file(source_audio_path)
 
-    # Load the TTS and existing audio with pydub
-    tts_audio = pydub.AudioSegment.from_mp3("tts_output.mp3")
-    existing_segment = pydub.AudioSegment.from_mp3(existing_audio)
+    # Load the splice audio file
+    splice_audio = AudioSegment.from_file(splice_audio_path)
 
-    # Silence (optional) before and after insertion (in milliseconds)
-    silence_duration = 100
+    # Extract the portion of the source audio after the splice point
+    source_audio_after_splice = source_audio[splice_position_ms:]
 
-    # Create silent segments for padding
-    silence_before = pydub.AudioSegment.silent(duration=silence_duration)
-    silence_after = pydub.AudioSegment.silent(duration=silence_duration)
+    # Splice the audio files
+    new_audio = source_audio[:splice_position_ms] + splice_audio + source_audio_after_splice
 
-    # Combine segments in the desired order
-    spliced_audio = silence_before + tts_audio + silence_after + existing_segment[
-                                                                 0:insertion_point * 1000] + existing_segment[
-                                                                                             insertion_point * 1000:]
+    # Export the new audio
+    output_path = "output_audio.mp3"  # Change this to your desired output path
+    new_audio.export(output_path, format="mp3")
 
-    # Export the spliced audio with a new filename
-    spliced_audio.export("spliced_audio.mp3", format="mp3")
-
-    print("Audio spliced successfully!")
+    print("Audio splicing completed successfully!")
 
 
-generate_audio_code()
+def generate_final_audio(code):
+    code = " ".join(str(code))
+    create_tts_code(code)
+    splice_time = random.randint(1*60*1000, 40*60*1000)
+    splice_audio_files("Bushmeat.mp3", "tts_output.mp3", splice_time)
