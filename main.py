@@ -1,9 +1,10 @@
-import discord, os
+import discord, os, udata
 from discord.ui import View, Button
 
 
 intents = discord.Intents.default()
 intents.message_content = True  # Needed for slash commands
+intents.members = True
 
 bot = discord.Client(intents=intents)
 
@@ -16,15 +17,52 @@ class MyView(View):
     @discord.ui.button(label="Click Me!", style=discord.ButtonStyle.green)
     async def button_callback(self, interaction: discord.Interaction, button: discord.ui.Button):
         # Update button text or perform actions on click
+
+        userid = interaction.user.id
+        udata.changebal(userid, 10)
+
         button.label = "Clicked!"
         await interaction.response.edit_message(view=self)
-        await interaction.followup.send("Button Clicked!", ephemeral=True)
+        await interaction.followup.send(f"Added 10 to your balance. Your new balance is {udata.getbal(userid)}!", ephemeral=True)
 
 
 @tree.command(name="bal", description="Find your own 3er3coin balance!", guild=discord.Object(id=guildID))
-async def test_command(interaction: discord.Interaction):
+async def bal(interaction: discord.Interaction):
+    userid = interaction.user.id
+
+    try:
+        currentbal = udata.getbal(userid)
+    except:
+        udata.setbal(userid, 100)
+        currentbal = 100
+
     view = MyView()
-    await interaction.response.send_message("This message has buttons!", view=view)
+    await interaction.response.send_message(f"Thanks user {interaction.user.name}! Your current balance is {currentbal} 3er3coin.", view=view)
+
+
+@tree.command(name="lb", description="View the 3er3coin leaderboard!", guild=discord.Object(id=guildID))
+async def lb(interaction: discord.Interaction):
+    userdata = udata.getuserdata()
+    sorted_lb = sorted(userdata.items(), key=lambda item: item[1], reverse=True)
+
+    out_text = ""
+    for entry in sorted_lb:
+        uid, ubal = entry
+        uname = interaction.guild.get_member(int(uid))
+        out_text += f"{uname} has {ubal} 3er3coin!"
+        out_text += "\n"
+
+    await interaction.response.send_message(out_text)
+
+
+@tree.command(name="set_bal", description="Change a person's 3er3coin balance!", guild=discord.Object(id=guildID))
+@discord.app_commands.checks.has_permissions(administrator=True)
+async def set_bal(interaction: discord.Interaction, target: discord.Member, value: int):
+
+    udata.setbal(target.id, value)
+
+    await interaction.response.send_message(f"Set {target.mention}'s 3er3coin balance to {value}!")
+
 
 @bot.event
 async def on_ready():
