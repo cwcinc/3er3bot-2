@@ -1,18 +1,29 @@
-import discord, os, udata, asyncio
-from discord.ui import View, Button
+"""
+https://discord.com/api/oauth2/authorize?client_id=1227827763084529766&permissions=26795494862656&scope=bot%20applications.commands
+"""
 
-import mining, taxes, random
+import asyncio
+import time
+import datetime
 
-intents = discord.Intents.default()
-intents.message_content = True  # Needed for slash commands
-intents.members = True
+import discord
+import os
+
+import mine_command
+import udata
+from discord.ui import View
+
+import mining
+import random
+
+intents = discord.Intents.all()
 
 bot = discord.Client(intents=intents)
 
 tree = discord.app_commands.CommandTree(bot)
 
-guildID = 856733214659051520
-
+guildIDL = [1228578874439241728, 856733214659051520]
+guildIDs = [discord.Object(i) for i in guildIDL]
 
 class MyView(View):
     @discord.ui.button(label="Click Me!", style=discord.ButtonStyle.green)
@@ -27,24 +38,32 @@ class MyView(View):
         await interaction.followup.send(f"Added 10 to your balance. Your new balance is {udata.getbal(userid)}!", ephemeral=True)
 
 
-@tree.command(name="bal", description="Find your own 3er3coin balance!", guild=discord.Object(id=guildID))
+class MineView(View):
+    @discord.ui.button(label="Go Mining!", style=discord.ButtonStyle.green)
+    async def button_callback(self, interaction: discord.Interaction, button: discord.ui.Button):
+        button.label = "OFF TO THE MINES!"
+        button.style = discord.ButtonStyle.danger
+        await mine()
+
+
+@tree.command(name="bal", description="Find your own 3er3coin balance!", guilds=guildIDs)
 async def bal(interaction: discord.Interaction):
     userid = interaction.user.id
 
     try:
         currentbal = udata.getbal(userid)
     except:
-        udata.setbal(userid, 100_000)
-        currentbal = 100_000
+        udata.setbal(userid, 0)
+        currentbal = 0
 
-    view = MyView()
-    await interaction.response.send_message(f"Thanks user {interaction.user.name}! Your current balance is {currentbal} 3er3coin.", view=view)
+    view = MineView()
+    await interaction.response.send_message(f"{interaction.user.name}, your current balance is {currentbal} 3er3coin.", view=view)
 
 
-@tree.command(name="lb", description="View the 3er3coin leaderboard!", guild=discord.Object(id=guildID))
+@tree.command(name="lb", description="View the 3er3coin leaderboard!", guilds=guildIDs)
 async def lb(interaction: discord.Interaction):
     userdata = udata.getuserdata()
-    sorted_lb = sorted(userdata.items(), key=lambda item: item[1], reverse=True)
+    sorted_lb = sorted(userdata["users"].items(), key=lambda item: item[1], reverse=True)
 
     out_text = ""
     for entry in sorted_lb:
@@ -52,11 +71,12 @@ async def lb(interaction: discord.Interaction):
         uname = interaction.guild.get_member(int(uid))
         out_text += f"{uname} has {ubal} 3er3coin!"
         out_text += "\n"
+    out_text += f"**The bank has {userdata['BANK']} 3er3coin.**"
 
     await interaction.response.send_message(out_text)
 
 
-@tree.command(name="set_bal", description="Change a person's 3er3coin balance!", guild=discord.Object(id=guildID))
+@tree.command(name="set_bal", description="Change a person's 3er3coin balance!", guilds=guildIDs)
 @discord.app_commands.checks.has_permissions(administrator=True)
 async def set_bal(interaction: discord.Interaction, target: discord.Member, value: int):
 
@@ -77,59 +97,56 @@ class FinishMine(View):
         await interaction.followup.send(f"Added 10 to your balance. Your new balance is {udata.getbal(userid)}!", ephemeral=True)
 
 
-@tree.command(name="mine", description="Mine for 3er3!", guild=discord.Object(id=guildID))
+@tree.command(name="mine", description="Mine for 3er3!", guilds=guildIDs)
 async def mine(interaction: discord.Interaction):
-    code = random.randint(1000, 9999)
-    print(f"User {interaction.user.name} has started mining. The code is {code}.")
-    print("Generating coded audio...")
-    await interaction.response.send_message("Generating coded audio...")
-    mining.generate_final_audio(code)
-    print("Coded audio completed. Sending...")
-
-    await interaction.followup.send("Here's your challenge. Good luck mining!", file=discord.File("miningChallenge.mp3"))
-
-    user_waiting = interaction.user.id
-    waiting_channel = interaction.channel
-
-    def check_for_reply(message):
-      return message.author.id == user_waiting and message.channel == waiting_channel and message.content.isnumeric()
-
-    try:
-      reply = await bot.wait_for('message', check=check_for_reply, timeout=10)
-      user_response = reply.content
-  
-      correct_code = str(user_response).strip() == str(code)
-      if correct_code:
-        await reply.reply(f"YAY! You got it right! The code was {code}")
-      else:
-        await reply.reply(f"Whoops, you just wasted a good portion of your life. The code was {code}")
-    except asyncio.TimeoutError:
-      await interaction.followup.send(f"You took too long to respond. The code was {code}")
+    await mine_command.mine(bot, interaction)
 
 
-@tree.command(name="bet", description="Bet against your friends!", guild=discord.Object(id=guildID))
+@tree.command(name="bet", description="Bet against your friends!", guilds=guildIDs)
 async def bet(interaction: discord.Interaction):
+    user_list = []
     try:
-      # Send the message and wait for the message object
-      message = await interaction.response.send_message("React to this message to bet!")
+        # Send the message and wait for the message object
+        await interaction.response.send_message("aight")
+        message = await interaction.followup.send("React to this message to bet!")
 
-      # Add the reaction after the message is successfully sent
-      await message.add_reaction("")
+        # Add the reaction after the message is successfully sent
+        await message.add_reaction("💰")
     except discord.HTTPException as e:
-      # Handle errors if the message fails to send
-      await interaction.response.send_message(f"An error occurred: {e}")
-    def check(reaction, user):
-      return user != bot.user and str(reaction.emoji) == "💰"
+        # Handle errors if the message fails to send
+        await interaction.response.send_message(f"An error occurred: {e}")
 
-    reaction, user = await bot.wait_for("reaction_add", check=check)
+    def check(reaction_type, the_user):
+        return the_user != bot.user and str(reaction_type.emoji) == "💰"
+
+    reaction, user = await bot.wait_for("reaction_add", check=check, timeout=60)
     user_list.append(user.id)
 
     await asyncio.sleep(30)
     await interaction.followup.send(f"The users who reacted are {user_list}")
 
+
+@tree.command(name="stop", description="Stop audio", guilds=guildIDs)
+async def stop(ctx):
+    # Checking if the bot is in a voice channel
+    voice_client = discord.utils.get(bot.voice_clients, guild=ctx.guild)
+
+    if voice_client is None:
+        await ctx.response.send_message("I'm not in a voice channel!")
+        return
+
+    # Stopping the audio
+    voice_client.stop()
+
+    await ctx.response.send_message("Oh man you didn't like it :(")
+
+    # Disconnecting from the voice channel
+    await voice_client.disconnect()
+
+
 @bot.event
 async def on_ready():
-    await tree.sync(guild=discord.Object(id=guildID))
+    await tree.sync(guild=guildIDs[0])
     print(f'Bot logged in as {bot.user}')
 
 bot.run(os.getenv("TOKEN"))

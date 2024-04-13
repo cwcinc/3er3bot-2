@@ -14,16 +14,34 @@ def setuserdata(userdata):
 
 def getbal(userid):
     userdata = getuserdata()
-    return userdata[str(userid)]
+    return userdata["users"][str(userid)]
 
 
 def setbal(userid, newbal):
     userdata = getuserdata()
-    userdata[str(userid)] = newbal
+    userdata["users"][str(userid)] = newbal
     setuserdata(userdata)
 
 
 def changebal(userid, amount):
     userdata = getuserdata()
-    userdata[str(userid)] += amount
+    userdata["users"][str(userid)] += amount
     setuserdata(userdata)
+
+
+def bank_transaction(userid, percentage):
+    """Positive percentage is paying the user from the bank
+    Negative percentage is taxing the user to benefit the bank"""
+    userdata = getuserdata()
+    bank_balance = userdata["BANK"]
+    payout = round(bank_balance * percentage / 100)
+
+    try:
+        userdata["users"][str(userid)] += payout
+    except KeyError:
+        print("Creating New User")
+        userdata["users"][str(userid)] = payout
+
+    userdata["BANK"] -= payout
+    setuserdata(userdata)
+    return payout

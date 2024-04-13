@@ -31,9 +31,18 @@ def splice_audio_files(source_audio_path, splice_audio_path, splice_position_ms)
     print("Audio splicing completed successfully!")
 
 
+def ms_to_minutes_seconds(ms):
+    minutes = int(ms / (1000 * 60))
+    seconds = int((ms % (1000 * 60)) / 1000)
+    return f"{minutes}:{seconds:02d}"
+
+
 def generate_final_audio(code):
     code = " ".join(str(code))
     create_tts_code(code)
-    splice_time = random.randint(1*60*1000, 40*60*1000)
-    print("TTS created. Splicing audio...")
-    splice_audio_files("testaudio.mp3", "tts_output.mp3", splice_time)
+    splice_time = random.randint(1*60*1000, 40*60*1000) # / 100
+    print(f"TTS created. Splicing audio at {ms_to_minutes_seconds(splice_time)}...")
+    splice_audio_files("Bushmeat.mp3", "tts_output.mp3", splice_time)
+    return splice_time
+
+
