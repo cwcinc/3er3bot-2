@@ -7,27 +7,35 @@ import time
 import datetime
 
 import discord
+from discord.ext import commands
+
 import os
 
 import mine_command
 import udata
 from discord.ui import View
 
-import mining
-import random
+
+description = """
+I've got Ʒerʒ.
+"""
 
 intents = discord.Intents.all()
-
-bot = discord.Client(intents=intents)
-
-tree = discord.app_commands.CommandTree(bot)
 
 guildIDL = [1228578874439241728, 856733214659051520]
 guildIDs = [discord.Object(i) for i in guildIDL]
 
+bot = commands.Bot(
+    command_prefix=commands.when_mentioned_or("Ʒ"),
+    description=description,
+    intents=intents,
+    debug_guilds=guildIDL
+)
+
+
 class MyView(View):
     @discord.ui.button(label="Click Me!", style=discord.ButtonStyle.green)
-    async def button_callback(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def button_callback(self, interaction, button: discord.ui.Button):
         # Update button text or perform actions on click
 
         userid = interaction.user.id
@@ -40,66 +48,67 @@ class MyView(View):
 
 class MineView(View):
     @discord.ui.button(label="Go Mining!", style=discord.ButtonStyle.green)
-    async def button_callback(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def button_callback(self, ctx: commands.Context, button: discord.ui.Button):
         button.label = "OFF TO THE MINES!"
         button.style = discord.ButtonStyle.danger
         await mine()
 
 
-@tree.command(name="bal", description="Find your own ƷerʒCoin balance!", guilds=guildIDs)
-async def bal(interaction: discord.Interaction):
-    userid = interaction.user.id
+@bot.command()
+async def bal(ctx: commands.Context):
+    """Get your balance!"""
+    userid = ctx.author.id
 
     try:
-        currentbal = udata.getbal(userid)
-    except:
+        current_bal = udata.getbal(userid)
+    except KeyError:
         udata.setbal(userid, 0)
-        currentbal = 0
+        current_bal = 0
 
     view = MineView()
-    await interaction.response.send_message(f"{interaction.user.name}, your current balance is {currentbal} ƷerʒCoin.", view=view)
+    await ctx.respond(f"{ctx.author.name}, your current balance is {current_bal} ƷerʒCoin.", view=view)
 
 
-@tree.command(name="lb", description="View the ƷerʒCoin leaderboard!", guilds=guildIDs)
-async def lb(interaction: discord.Interaction):
+@bot.command()
+async def lb(ctx: commands.Context):
     userdata = udata.getuserdata()
     sorted_lb = sorted(userdata["users"].items(), key=lambda item: item[1], reverse=True)
 
     out_text = ""
     for entry in sorted_lb:
         uid, ubal = entry
-        uname = interaction.guild.get_member(int(uid))
+        uname = ctx.guild.get_member(int(uid))
         out_text += f"{uname} has {ubal} Ʒerʒcoin!"
         out_text += "\n"
     out_text += f"**The bank has {userdata['BANK']} Ʒerʒcoin.**"
 
-    await interaction.response.send_message(out_text)
+    await ctx.send(out_text)
 
 
-@tree.command(name="set_bal", description="Change a person's Ʒerʒcoin balance!", guilds=guildIDs)
-@discord.app_commands.checks.has_permissions(administrator=True)
-async def set_bal(interaction: discord.Interaction, target: discord.Member, value: int):
+@bot.command(name="set_bal", description="Change a person's Ʒerʒcoin balance!", guilds=guildIDs)
+@commands.has_permissions(administrator=True)
+async def set_bal(ctx: commands.Context, target: discord.Member, value: int):
 
     udata.setbal(target.id, value)
 
-    await interaction.response.send_message(f"Set {target.mention}'s Ʒerʒcoin balance to {value}!")
+    await ctx.send(f"Set {target.mention}'s Ʒerʒcoin balance to {value}!")
 
 
 class FinishMine(View):
     @discord.ui.button(label="Click Me!", style=discord.ButtonStyle.red)
-    async def button_callback(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def button_callback(self, ctx: commands.Context, button: discord.ui.Button):
         # Update button text or perform actions on click
 
-        userid = interaction.user.id
+        userid = ctx.author.id
 
         button.label = "Armed."
-        await interaction.response.edit_message(view=self)
-        await interaction.followup.send(f"Added 10 to your balance. Your new balance is {udata.getbal(userid)}!", ephemeral=True)
+        await ctx.message.edit_message(view=self)
+        await ctx.send(f"Added 10 to your balance. Your new balance is {udata.getbal(userid)}!", ephemeral=True)
 
 
-@tree.command(name="mine", description="Mine for Ʒerʒ!", guilds=guildIDs)
-async def mine(interaction: discord.Interaction):
-    await mine_command.mine(bot, interaction)
+@bot.command(name="mine", description="Mine for Ʒerʒ!", guilds=guildIDs)
+async def mine(ctx: commands.Context):
+    await mine_command.mine(bot, ctx)
 
 
 class BetView(View):
@@ -108,8 +117,8 @@ class BetView(View):
         self.bet_amount = bet_amount
 
     @discord.ui.button(label="Join Bet", style=discord.ButtonStyle.blurple)
-    async def join_bet(self, interaction: discord.Interaction, button: discord.ui.Button):
-        userid = interaction.user.id
+    async def join_bet(self, ctx: commands.Context, button: discord.ui.Button):
+        userid = ctx.author.id
 
         user_balance = udata.getbal(userid)
         if user_balance > self.bet_amount:
@@ -119,7 +128,7 @@ class BetView(View):
             description=f"Yay",
             color=discord.Color.green())
 
-        message = await interaction.response.send_message(embed=embed, ephemeral=True)
+        message = await ctx.send(embed=embed, ephemeral=True)
         print(message)
 
         # Wait for 30 seconds
@@ -129,38 +138,35 @@ class BetView(View):
         await message.delete()
 
 
-@tree.command(name="bet", description="Bet against your friends!", guilds=guildIDs)
-async def bet(interaction: discord.Interaction, win_condition: str, bet_amount: int):
+@bot.command(name="bet", description="Bet against your friends!", guilds=guildIDs)
+async def bet(ctx: commands.Context, win_condition: str, bet_amount: int):
     user_list = []
     embed = discord.Embed(
-        title=f"{interaction.user.name} bets {format(bet_amount, ',')} Ʒerʒ that...",
+        title=f"{ctx.author.name} bets {format(bet_amount, ',')} Ʒerʒ that...",
         description=f"**{win_condition}**",
         color=discord.Color.green())
     view = BetView(bet_amount)
-    await interaction.response.send_message(embed=embed, view=view)
+    await ctx.send(embed=embed, view=view)
 
 
-@tree.command(name="cancel_mining", description="Cancel any active mining sessions.", guilds=guildIDs)
+@bot.command(name="cancel_mining", description="Cancel any active mining sessions.", guilds=guildIDs)
 async def stop(ctx):
     # Checking if the bot is in a voice channel
     voice_client = discord.utils.get(bot.voice_clients, guild=ctx.guild)
 
     if voice_client is None:
-        await ctx.response.send_message("I'm not in a voice channel!")
+        await ctx.send("I'm not in a voice channel!")
         return
 
-    # Stopping the audio
-    voice_client.stop()
-
-    await ctx.response.send_message("Oh man you didn't like it :(")
+    await ctx.send("Oh man you didn't like it :(")
 
     # Disconnecting from the voice channel
-    await voice_client.disconnect()
+    await voice_client.disconnect(force=False)
 
 
 @bot.event
 async def on_ready():
-    await tree.sync(guild=guildIDs[0])
-    print(f'Bot logged in as {bot.user}')
+    print(f"Logged in as {bot.user} (ID: {bot.user.id})")
+    print("------")
 
 bot.run(os.getenv("TOKEN"))
