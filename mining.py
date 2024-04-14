@@ -40,7 +40,7 @@ def ms_to_minutes_seconds(ms):
 def generate_final_audio(code):
     code = " ".join(str(code))
     create_tts_code(code)
-    splice_time = random.randint(1*60*1000, 40*60*1000) # / 100
+    splice_time = random.randint(1*60*1000, 40*60*1000)  # / 100
     print(f"TTS created. Splicing audio at {ms_to_minutes_seconds(splice_time)}...")
     splice_audio_files("Bushmeat.mp3", "tts_output.mp3", splice_time)
     return splice_time

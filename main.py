@@ -46,7 +46,7 @@ class MineView(View):
         await mine()
 
 
-@tree.command(name="bal", description="Find your own 3er3coin balance!", guilds=guildIDs)
+@tree.command(name="bal", description="Find your own ƷerʒCoin balance!", guilds=guildIDs)
 async def bal(interaction: discord.Interaction):
     userid = interaction.user.id
 
@@ -57,10 +57,10 @@ async def bal(interaction: discord.Interaction):
         currentbal = 0
 
     view = MineView()
-    await interaction.response.send_message(f"{interaction.user.name}, your current balance is {currentbal} 3er3coin.", view=view)
+    await interaction.response.send_message(f"{interaction.user.name}, your current balance is {currentbal} ƷerʒCoin.", view=view)
 
 
-@tree.command(name="lb", description="View the 3er3coin leaderboard!", guilds=guildIDs)
+@tree.command(name="lb", description="View the ƷerʒCoin leaderboard!", guilds=guildIDs)
 async def lb(interaction: discord.Interaction):
     userdata = udata.getuserdata()
     sorted_lb = sorted(userdata["users"].items(), key=lambda item: item[1], reverse=True)
@@ -69,20 +69,20 @@ async def lb(interaction: discord.Interaction):
     for entry in sorted_lb:
         uid, ubal = entry
         uname = interaction.guild.get_member(int(uid))
-        out_text += f"{uname} has {ubal} 3er3coin!"
+        out_text += f"{uname} has {ubal} Ʒerʒcoin!"
         out_text += "\n"
-    out_text += f"**The bank has {userdata['BANK']} 3er3coin.**"
+    out_text += f"**The bank has {userdata['BANK']} Ʒerʒcoin.**"
 
     await interaction.response.send_message(out_text)
 
 
-@tree.command(name="set_bal", description="Change a person's 3er3coin balance!", guilds=guildIDs)
+@tree.command(name="set_bal", description="Change a person's Ʒerʒcoin balance!", guilds=guildIDs)
 @discord.app_commands.checks.has_permissions(administrator=True)
 async def set_bal(interaction: discord.Interaction, target: discord.Member, value: int):
 
     udata.setbal(target.id, value)
 
-    await interaction.response.send_message(f"Set {target.mention}'s 3er3coin balance to {value}!")
+    await interaction.response.send_message(f"Set {target.mention}'s Ʒerʒcoin balance to {value}!")
 
 
 class FinishMine(View):
@@ -97,36 +97,50 @@ class FinishMine(View):
         await interaction.followup.send(f"Added 10 to your balance. Your new balance is {udata.getbal(userid)}!", ephemeral=True)
 
 
-@tree.command(name="mine", description="Mine for 3er3!", guilds=guildIDs)
+@tree.command(name="mine", description="Mine for Ʒerʒ!", guilds=guildIDs)
 async def mine(interaction: discord.Interaction):
     await mine_command.mine(bot, interaction)
 
 
+class BetView(View):
+    def __init__(self, bet_amount):
+        super().__init__()
+        self.bet_amount = bet_amount
+
+    @discord.ui.button(label="Join Bet", style=discord.ButtonStyle.blurple)
+    async def join_bet(self, interaction: discord.Interaction, button: discord.ui.Button):
+        userid = interaction.user.id
+
+        user_balance = udata.getbal(userid)
+        if user_balance > self.bet_amount:
+            pass
+        embed = discord.Embed(
+            title=f"You have joined the bet with {self.bet_amount} Ʒerʒ",
+            description=f"Yay",
+            color=discord.Color.green())
+
+        message = await interaction.response.send_message(embed=embed, ephemeral=True)
+        print(message)
+
+        # Wait for 30 seconds
+        await asyncio.sleep(5)
+
+        # Delete the message
+        await message.delete()
+
+
 @tree.command(name="bet", description="Bet against your friends!", guilds=guildIDs)
-async def bet(interaction: discord.Interaction):
+async def bet(interaction: discord.Interaction, win_condition: str, bet_amount: int):
     user_list = []
-    try:
-        # Send the message and wait for the message object
-        await interaction.response.send_message("aight")
-        message = await interaction.followup.send("React to this message to bet!")
-
-        # Add the reaction after the message is successfully sent
-        await message.add_reaction("💰")
-    except discord.HTTPException as e:
-        # Handle errors if the message fails to send
-        await interaction.response.send_message(f"An error occurred: {e}")
-
-    def check(reaction_type, the_user):
-        return the_user != bot.user and str(reaction_type.emoji) == "💰"
-
-    reaction, user = await bot.wait_for("reaction_add", check=check, timeout=60)
-    user_list.append(user.id)
-
-    await asyncio.sleep(30)
-    await interaction.followup.send(f"The users who reacted are {user_list}")
+    embed = discord.Embed(
+        title=f"{interaction.user.name} bets {format(bet_amount, ',')} Ʒerʒ that...",
+        description=f"**{win_condition}**",
+        color=discord.Color.green())
+    view = BetView(bet_amount)
+    await interaction.response.send_message(embed=embed, view=view)
 
 
-@tree.command(name="stop", description="Stop audio", guilds=guildIDs)
+@tree.command(name="cancel_mining", description="Cancel any active mining sessions.", guilds=guildIDs)
 async def stop(ctx):
     # Checking if the bot is in a voice channel
     voice_client = discord.utils.get(bot.voice_clients, guild=ctx.guild)

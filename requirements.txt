@@ -1,6 +1,2 @@
-aiohttp
-aiosqlite
-discord.py
-python-dotenv
 pydub~=0.25.1
 gTTS~=2.5.1

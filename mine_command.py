@@ -1,7 +1,7 @@
 import discord, random, datetime, mining, time, udata, asyncio
 
 
-async def mine(bot, interaction):
+async def mine(bot: discord.Client, interaction: discord.Interaction):
     voice_client = discord.utils.get(bot.voice_clients, guild=interaction.guild)
     target_voice_channel_id = 1228584011212001311
     voice_channel = bot.get_channel(target_voice_channel_id)
@@ -58,7 +58,7 @@ async def mine(bot, interaction):
             win_percent = random.randint(1, 10)
             win_value = udata.bank_transaction(reply.author.id, win_percent)
             await reply.reply(
-                f"You have escaped the mines unscathed, and successfully collected {win_value} 3er3coin ({win_percent}%).")
+                f"You have escaped the mines unscathed, and successfully collected {win_value} Ʒerʒ! ({win_percent}% of Bank)")
         else:
             await reply.reply(f"Whoops, you just wasted a good portion of your life. The code was {code}")
     except asyncio.TimeoutError:
