@@ -25,26 +25,6 @@ tree = discord.app_commands.CommandTree(bot)
 guildIDL = [1228578874439241728, 856733214659051520]
 guildIDs = [discord.Object(i) for i in guildIDL]
 
-class MyView(View):
-    @discord.ui.button(label="Click Me!", style=discord.ButtonStyle.green)
-    async def button_callback(self, interaction: discord.Interaction, button: discord.ui.Button):
-        # Update button text or perform actions on click
-
-        userid = interaction.user.id
-        udata.changebal(userid, 10)
-
-        button.label = "Clicked!"
-        await interaction.response.edit_message(view=self)
-        await interaction.followup.send(f"Added 10 to your balance. Your new balance is {udata.getbal(userid)}!", ephemeral=True)
-
-
-class MineView(View):
-    @discord.ui.button(label="Go Mining!", style=discord.ButtonStyle.green)
-    async def button_callback(self, interaction: discord.Interaction, button: discord.ui.Button):
-        button.label = "OFF TO THE MINES!"
-        button.style = discord.ButtonStyle.danger
-        await mine()
-
 
 @tree.command(name="bal", description="Find your own ƷerʒCoin balance!", guilds=guildIDs)
 async def bal(interaction: discord.Interaction):
@@ -56,18 +36,17 @@ async def bal(interaction: discord.Interaction):
         udata.setbal(userid, 0)
         currentbal = 0
 
-    view = MineView()
-    await interaction.response.send_message(f"{interaction.user.name}, your current balance is {currentbal} ƷerʒCoin.", view=view)
+    await interaction.response.send_message(f"{interaction.user.name}, your current balance is {currentbal} ƷerʒCoin.")
 
 
 @tree.command(name="lb", description="View the ƷerʒCoin leaderboard!", guilds=guildIDs)
 async def lb(interaction: discord.Interaction):
     userdata = udata.getuserdata()
-    sorted_lb = sorted(userdata["users"].items(), key=lambda item: item[1], reverse=True)
+    sorted_lb = sorted(userdata["users"].items(), key=lambda item: item[1]["bal"], reverse=True)
 
     out_text = ""
     for entry in sorted_lb:
-        uid, ubal = entry
+        uid, ubal = entry[0], entry[1]["bal"]
         uname = interaction.guild.get_member(int(uid))
         out_text += f"{uname} has {ubal} Ʒerʒcoin!"
         out_text += "\n"
@@ -79,9 +58,7 @@ async def lb(interaction: discord.Interaction):
 @tree.command(name="set_bal", description="Change a person's Ʒerʒcoin balance!", guilds=guildIDs)
 @discord.app_commands.checks.has_permissions(administrator=True)
 async def set_bal(interaction: discord.Interaction, target: discord.Member, value: int):
-
     udata.setbal(target.id, value)
-
     await interaction.response.send_message(f"Set {target.mention}'s Ʒerʒcoin balance to {value}!")
 
 
@@ -103,50 +80,63 @@ async def mine(interaction: discord.Interaction):
 
 
 class BetView(View):
-    def __init__(self, bet_amount):
+    def __init__(self, bet_amount, user_list):
         super().__init__()
         self.bet_amount = bet_amount
+        self.user_list = user_list
 
     @discord.ui.button(label="Join Bet", style=discord.ButtonStyle.blurple)
     async def join_bet(self, interaction: discord.Interaction, button: discord.ui.Button):
         userid = interaction.user.id
 
         user_balance = udata.getbal(userid)
-        if user_balance > self.bet_amount:
-            pass
-        embed = discord.Embed(
-            title=f"You have joined the bet with {self.bet_amount} Ʒerʒ",
-            description=f"Yay",
-            color=discord.Color.green())
+        if user_balance >= self.bet_amount:
+            self.user_list.append(userid)
+            embed = discord.Embed(
+                title=f"You have joined the bet with {self.bet_amount} Ʒerʒ",
+                description=f"You will be notified of the bet result soon.",
+                color=discord.Color.green())
+        else:
+            embed = discord.Embed(
+                title=f"You do not have enough ƷerʒCoin to join this bet.",
+                description=f"This bet requires you to put in {self.bet_amount} Ʒerʒ to join, and you only have {user_balance}",
+                color=discord.Color.red())
 
-        message = await interaction.response.send_message(embed=embed, ephemeral=True)
-        print(message)
-
-        # Wait for 30 seconds
-        await asyncio.sleep(5)
-
-        # Delete the message
-        await message.delete()
+        await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
 @tree.command(name="bet", description="Bet against your friends!", guilds=guildIDs)
 async def bet(interaction: discord.Interaction, win_condition: str, bet_amount: int):
-    user_list = []
+    u_bal = udata.getbal(interaction.user.id)
+    if u_bal < bet_amount:
+        interaction.response.send_message("You do not have enough Ʒerʒ to create this bet."
+                                          f"You tried to make a bet with {bet_amount} Ʒerʒ, but you only have {u_bal}.",
+                                          ephemeral=True)
+        return
+
+    if bet_amount < 1:
+        interaction.response.send_message("You cannot place bets with negative or 0 Ʒerʒ!", ephemeral=True)
+        return
+
+    user_list = [interaction.user.id]
     embed = discord.Embed(
         title=f"{interaction.user.name} bets {format(bet_amount, ',')} Ʒerʒ that...",
         description=f"**{win_condition}**",
         color=discord.Color.green())
-    view = BetView(bet_amount)
+    view = BetView(bet_amount, user_list)
     await interaction.response.send_message(embed=embed, view=view)
+    await asyncio.sleep(10)
+    await interaction.followup.send(f"Final participants: {', '.join([interaction.guild.get_member(i).name for i in user_list])}")
 
 
 @tree.command(name="cancel_mining", description="Cancel any active mining sessions.", guilds=guildIDs)
-async def stop(ctx):
+@discord.app_commands.checks.has_permissions(administrator=True)
+async def cancel_mining(ctx):
     # Checking if the bot is in a voice channel
     voice_client = discord.utils.get(bot.voice_clients, guild=ctx.guild)
 
     if voice_client is None:
-        await ctx.response.send_message("I'm not in a voice channel!")
+        await ctx.response.send_message("There is currently no mining taking place!")
         return
 
     # Stopping the audio
@@ -156,6 +146,29 @@ async def stop(ctx):
 
     # Disconnecting from the voice channel
     await voice_client.disconnect()
+
+
+@tree.command(name="give", description="Give someone your Ʒerʒ!", guilds=guildIDs)
+async def give(interaction: discord.Interaction, target: discord.Member, amount: int):
+    if target.id == 1227827763084529766:
+        await interaction.response.send_message("You cannot give ƷerʒCoin to ƷerʒBot!", ephemeral=True)
+        return
+
+    if target.id == interaction.user.id:
+        await interaction.response.send_message("You cannot give ƷerʒCoin to yourself!", ephemeral=True)
+        return
+
+    udata.try_new_user(target.id)
+    user_bal = udata.getbal(interaction.user.id)
+    if user_bal < amount:
+        await interaction.response.send_message("You don't have enough ƷerʒCoin to complete this transaction."
+                                                f"You attempted to send {amount} ƷerʒCoin, but you only have {user_bal}.",
+                                                ephemeral=True)
+        return
+
+    udata.changebal(interaction.user.id, -amount)
+    udata.changebal(target.id, amount)
+    await interaction.response.send_message(f"{interaction.user.name} has successfully sent {target.name} {amount} ƷerʒCoin!")
 
 
 @bot.event

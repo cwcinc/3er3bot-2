@@ -6,7 +6,7 @@ import random
 def create_tts_code(code):
     text = code
 
-    speech = gTTS(text=text, lang='en')
+    speech = gTTS(text=text, lang='en', slow=True)
     speech.save("tts_output.mp3")
 
 
@@ -26,7 +26,7 @@ def splice_audio_files(source_audio_path, splice_audio_path, splice_position_ms)
     # Export the new audio
     output_path = "miningChallenge.mp3"  # Change this to your desired output path
     print("exporting...")
-    new_audio.export(output_path, format="mp3", bitrate="16k")
+    new_audio.export(output_path, format="mp3")  # rendering times: 8k - 34s, 16k - 25s, 32k - 29s, 64k - 28s, 312k - 35s
 
     print("Audio splicing completed successfully!")
 
@@ -38,7 +38,7 @@ def ms_to_minutes_seconds(ms):
 
 
 def generate_final_audio(code):
-    code = " ".join(str(code))
+    code = ", ".join(str(code))
     create_tts_code(code)
     splice_time = random.randint(1*60*1000, 40*60*1000)  # / 100
     print(f"TTS created. Splicing audio at {ms_to_minutes_seconds(splice_time)}...")
