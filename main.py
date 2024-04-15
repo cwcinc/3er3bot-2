@@ -90,18 +90,28 @@ class BetView(View):
         userid = interaction.user.id
 
         user_balance = udata.getbal(userid)
-        if user_balance >= self.bet_amount:
-            self.user_list.append(userid)
-            embed = discord.Embed(
-                title=f"You have joined the bet with {self.bet_amount} Ʒerʒ",
-                description=f"You will be notified of the bet result soon.",
-                color=discord.Color.green())
-        else:
+        if user_balance < self.bet_amount:
             embed = discord.Embed(
                 title=f"You do not have enough ƷerʒCoin to join this bet.",
                 description=f"This bet requires you to put in {self.bet_amount} Ʒerʒ to join, and you only have {user_balance}",
                 color=discord.Color.red())
+            await interaction.response.send_message(embed=embed, ephemeral=True)
+            return
 
+        if udata.is_betting(userid):
+            embed = discord.Embed(
+                title="You are already in another bet!",
+                description="You can only join one bet at a time.",
+                color=discord.Color.red())
+            await interaction.response.send_message(embed=embed, ephemeral=True)
+            return
+
+        self.user_list.append(userid)
+        embed = discord.Embed(
+            title=f"You have joined the bet with {self.bet_amount} Ʒerʒ",
+            description=f"You will be notified of the bet result soon.",
+            color=discord.Color.green())
+        udata.set_betting(userid, True)
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
@@ -109,15 +119,20 @@ class BetView(View):
 async def bet(interaction: discord.Interaction, win_condition: str, bet_amount: int):
     u_bal = udata.getbal(interaction.user.id)
     if u_bal < bet_amount:
-        interaction.response.send_message("You do not have enough Ʒerʒ to create this bet."
+        await interaction.response.send_message("You do not have enough Ʒerʒ to create this bet."
                                           f"You tried to make a bet with {bet_amount} Ʒerʒ, but you only have {u_bal}.",
                                           ephemeral=True)
         return
 
     if bet_amount < 1:
-        interaction.response.send_message("You cannot place bets with negative or 0 Ʒerʒ!", ephemeral=True)
+        await interaction.response.send_message("You cannot place bets with negative or 0 Ʒerʒ!", ephemeral=True)
         return
 
+    if udata.is_betting(interaction.user.id):
+        await interaction.response.send_message("You can only participate in one bet at a time!", ephemeral=True)
+        return
+
+    udata.set_betting(interaction.user.id, True)
     user_list = [interaction.user.id]
     embed = discord.Embed(
         title=f"{interaction.user.name} bets {format(bet_amount, ',')} Ʒerʒ that...",
@@ -127,6 +142,9 @@ async def bet(interaction: discord.Interaction, win_condition: str, bet_amount: 
     await interaction.response.send_message(embed=embed, view=view)
     await asyncio.sleep(10)
     await interaction.followup.send(f"Final participants: {', '.join([interaction.guild.get_member(i).name for i in user_list])}")
+
+    for user_id in user_list:
+        udata.set_betting(user_id, False)
 
 
 @tree.command(name="cancel_mining", description="Cancel any active mining sessions.", guilds=guildIDs)
