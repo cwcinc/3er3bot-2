@@ -15,6 +15,7 @@ from discord.ui import View
 
 import mining
 import random
+import taxes
 
 intents = discord.Intents.all()
 
@@ -187,6 +188,23 @@ async def give(interaction: discord.Interaction, target: discord.Member, amount:
     udata.changebal(interaction.user.id, -amount)
     udata.changebal(target.id, amount)
     await interaction.response.send_message(f"{interaction.user.name} has successfully sent {target.name} {amount} ƷerʒCoin!")
+
+
+@tree.command(name="delete_user", description="Delete a user from the database.", guilds=guildIDs)
+@discord.app_commands.checks.has_permissions(administrator=True)
+async def delete_user(interaction: discord.Interaction, target: discord.Member):
+    if not udata.exists(target.id):
+        await interaction.response.send_message("User does not exist in the database.", ephemeral=True)
+        return
+    userdata = udata.getuserdata()
+    await interaction.response.send_message(f"Deleted {target.name} from the database.", ephemeral=True)
+
+
+@tree.command(name="tax_all", description="Taxes all users.", guilds=guildIDs)
+@discord.app_commands.checks.has_permissions(administrator=True)
+async def tax_all(interaction: discord.Interaction):
+    taxes.tax_all()
+    await interaction.response.send_message("Taxed all users.", ephemeral=True)
 
 
 @bot.event

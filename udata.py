@@ -34,8 +34,7 @@ def changebal(userid, amount):
 
 def try_new_user(userid, balance=0, betting=False):
     userdata = getuserdata()
-    user = userdata["users"].get(str(userid), None)
-    if user is not None:
+    if exists(userid):
         return
 
     new_user = {"bal": balance, "is_betting": betting}
@@ -50,8 +49,13 @@ def bank_transaction(userid, percentage):
     try_new_user(userid)
     userdata = getuserdata()
     bank_balance = userdata["BANK"]
-    payout = round(bank_balance * percentage / 100)
-
+    user_balance = getbal(userid)
+    if percentage < 0:
+        payout = round(user_balance * percentage / 100)
+    else:
+        payout = round(bank_balance * percentage / 100)
+    
+    print(f"Paying {payout} ƷerʒCoin to {userid} from the bank.")
     userdata["users"][str(userid)]["bal"] += payout
 
     userdata["BANK"] -= payout
@@ -70,3 +74,8 @@ def set_betting(userid, status):
     userdata = getuserdata()
     userdata["users"][str(userid)]["is_betting"] = status
     setuserdata(userdata)
+
+
+def exists(userid):
+    userdata = getuserdata()
+    return userdata["users"].get(str(userid), None) is not None
