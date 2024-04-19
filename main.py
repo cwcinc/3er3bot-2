@@ -116,6 +116,16 @@ class BetView(View):
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
+class BetResult(View):
+    @discord.ui.button(label="Won", style=discord.ButtonStyle.green)
+    async def bet_won(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.send_message("Bet result true!")
+
+    @discord.ui.button(label="Lost", style=discord.ButtonStyle.red)
+    async def bet_lost(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.send_message("Bet result false.")
+
+
 @tree.command(name="bet", description="Bet against your friends!", guilds=guildIDs)
 async def bet(interaction: discord.Interaction, win_condition: str, bet_amount: int):
     u_bal = udata.getbal(interaction.user.id)
@@ -142,7 +152,20 @@ async def bet(interaction: discord.Interaction, win_condition: str, bet_amount: 
     view = BetView(bet_amount, user_list)
     await interaction.response.send_message(embed=embed, view=view)
     await asyncio.sleep(10)
+    if len(user_list) < 2:
+        await interaction.followup.send("Nobody else has joined this bet. The bet will now be cancelled.")
+        for user_id in user_list:
+            udata.set_betting(user_id, False)
+        return
+
     await interaction.followup.send(f"Final participants: {', '.join([interaction.guild.get_member(i).name for i in user_list])}")
+    await interaction.channel.send("What's the result? Please reply with **win** or **lose** depending on the result.\n"
+                                   "Lies will be caught, so be honest!")
+    reply = await bot.wait_for("message", check=lambda inter: inter.author == interaction.user and inter.content in ['win', 'lose'])
+    if reply.content == "win":
+        await interaction.followup.send("WiN!")
+    else:
+        await interaction.followup.send("loSE!")
 
     for user_id in user_list:
         udata.set_betting(user_id, False)
